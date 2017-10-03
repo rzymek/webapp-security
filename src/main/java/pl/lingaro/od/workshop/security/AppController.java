@@ -28,6 +28,7 @@ import javax.validation.constraints.NotNull;
 import java.io.IOException;
 import java.security.Principal;
 import java.util.List;
+import java.util.UUID;
 import java.util.logging.Logger;
 
 @Controller
@@ -53,7 +54,7 @@ public class AppController {
     }
 
     @GetMapping("/download/{id}")
-    public void download(@PathVariable("id") int id, HttpServletResponse response, Principal principal) throws IOException {
+    public void download(@PathVariable("id") String id, HttpServletResponse response, Principal principal) throws IOException {
         Upload upload = getFileForDownload(id, principal);
         byte[] file = upload.getContents();
         response.setContentLengthLong(file.length);
@@ -93,6 +94,7 @@ public class AppController {
     @Transactional
     public String handleUpload(@RequestParam("file") MultipartFile file, Principal principal) throws Exception {
         Upload upload = new Upload();
+        upload.setId(UUID.randomUUID().toString());
         upload.setFilename(nameSanitizer.sanitize(file.getOriginalFilename()));
         upload.setContents(StreamUtils.copyToByteArray(file.getInputStream()));
         upload.setOwner(principal.getName());
@@ -102,7 +104,7 @@ public class AppController {
 
     @RolesAllowed("ROLE_USER")
     @GetMapping("/publish/{id}")
-    public String publish(@PathVariable("id") int id, Model model, Principal principal) throws IOException {
+    public String publish(@PathVariable("id") String id, Model model, Principal principal) throws IOException {
         final Upload upload = getUpload(id, principal);
         model.addAttribute("file", upload);
         return "publish";
@@ -111,7 +113,7 @@ public class AppController {
     @Transactional
     @PostMapping("/publish/{id}")
     public String publish(
-            @PathVariable("id") int id,
+            @PathVariable("id") String id,
             @RequestParam("description") String description,
             Principal principal) throws IOException {
         final Upload upload = getUpload(id, principal);
@@ -123,13 +125,13 @@ public class AppController {
     @RolesAllowed("ROLE_USER")
     @Transactional
     @GetMapping("/delete/{id}")
-    public String delete(@PathVariable("id") int id, Principal principal) throws IOException {
+    public String delete(@PathVariable("id") String id, Principal principal) throws IOException {
         final Upload upload = getUpload(id, principal);
         uploadRepository.delete(upload);
         return "redirect:/myfiles";
     }
 
-    private Upload getUpload(int id, @NotNull Principal principal) {
+    private Upload getUpload(String id, @NotNull Principal principal) {
         final Upload upload = uploadRepository.findOne(id);
         final String user = principal.getName();
         if (upload == null || !upload.getOwner().equals(user)) {
@@ -139,7 +141,7 @@ public class AppController {
         return upload;
     }
 
-    private Upload getFileForDownload(int id, Principal principal) {
+    private Upload getFileForDownload(String id, Principal principal) {
         final Upload upload = uploadRepository.findOne(id);
         final String user = principal == null ? null : principal.getName();
         if(upload != null && (upload.isPublished() || upload.getOwner().equals(user))){

@@ -6,7 +6,7 @@ import java.util.Date;
 
 @Entity
 public class Upload implements FileInfo {
-    private int id;
+    private String id;
     private String filename;
     private byte[] contents;
     private Date timestamp = new Date();
@@ -16,8 +16,7 @@ public class Upload implements FileInfo {
 
     @Override
     @Id
-    @GeneratedValue
-    public int getId() {
+    public String getId() {
         return id;
     }
 
@@ -55,7 +54,7 @@ public class Upload implements FileInfo {
         return published;
     }
 
-    protected void setId(int id) {
+    public void setId(String id) {
         this.id = id;
     }
 

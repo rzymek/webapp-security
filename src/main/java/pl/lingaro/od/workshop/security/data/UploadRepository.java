@@ -8,7 +8,7 @@ import org.springframework.data.jpa.repository.Query;
 
 import java.util.List;
 
-public interface UploadRepository extends JpaRepository<Upload, Integer> {
+public interface UploadRepository extends JpaRepository<Upload, String> {
     List<FileInfo> findAll(Specification<Upload> specification);
 
     @Query("select file from Upload file where file.published=true order by file.timestamp desc")
