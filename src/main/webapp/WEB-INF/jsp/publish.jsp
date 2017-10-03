@@ -4,8 +4,10 @@
 
 <t:template>
     <jsp:attribute name="head">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/trix/0.11.0/trix.css"/>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/trix/0.11.0/trix.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/trix/0.11.0/trix.css"
+        integrity="sha256-dWB4+Wz+fVR7yYPbQslYl3heVgh3qKR5mhXfZLNLSoE=" crossorigin="anonymous"/>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/trix/0.11.0/trix.js"
+        integrity="sha256-Ak+mUV35SNYrBPU3LzuPezJMi5RLv0IkhU0sY1dVlYo=" crossorigin="anonymous"></script>
     </jsp:attribute>
     <jsp:body>
         <h1 class="mt-5">Publish ${file.filename}</h1>
