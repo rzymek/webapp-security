@@ -8,6 +8,9 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.servlet.ModelAndView;
 
 import javax.persistence.EntityManager;
+import javax.persistence.EntityNotFoundException;
+import javax.servlet.http.HttpServletResponse;
+import java.io.IOException;
 import java.security.Principal;
 import java.util.Collections;
 import java.util.UUID;
@@ -41,4 +44,8 @@ class GlobalDefaultExceptionHandler {
         return new ModelAndView("/error", Collections.singletonMap("id",id));
     }
 
+    @ExceptionHandler(EntityNotFoundException.class)
+    public void entityNotFound(HttpServletResponse response) throws IOException {
+        response.sendError(HttpServletResponse.SC_NOT_FOUND);
+    }
 }

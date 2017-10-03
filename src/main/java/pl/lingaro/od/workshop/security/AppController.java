@@ -20,9 +20,11 @@ import pl.lingaro.od.workshop.security.data.Upload;
 import pl.lingaro.od.workshop.security.data.UploadRepository;
 
 import javax.annotation.security.RolesAllowed;
+import javax.persistence.EntityNotFoundException;
 import javax.persistence.criteria.Predicate;
 import javax.servlet.ServletOutputStream;
 import javax.servlet.http.HttpServletResponse;
+import javax.validation.constraints.NotNull;
 import java.io.IOException;
 import java.security.Principal;
 import java.util.List;
@@ -51,12 +53,8 @@ public class AppController {
     }
 
     @GetMapping("/download/{id}")
-    public void download(@PathVariable("id") int id, HttpServletResponse response) throws IOException {
-        Upload upload = uploadRepository.findOne(id);
-        if (upload == null) {
-            response.sendError(HttpServletResponse.SC_NOT_FOUND);
-            return;
-        }
+    public void download(@PathVariable("id") int id, HttpServletResponse response, Principal principal) throws IOException {
+        Upload upload = getFileForDownload(id, principal);
         byte[] file = upload.getContents();
         response.setContentLengthLong(file.length);
         response.addHeader("Content-Type", "application/octet-stream");
@@ -104,16 +102,19 @@ public class AppController {
 
     @RolesAllowed("ROLE_USER")
     @GetMapping("/publish/{id}")
-    public String publish(@PathVariable("id") int id, Model model) throws IOException {
-        final Upload upload = uploadRepository.findOne(id);
+    public String publish(@PathVariable("id") int id, Model model, Principal principal) throws IOException {
+        final Upload upload = getUpload(id, principal);
         model.addAttribute("file", upload);
         return "publish";
     }
 
     @Transactional
     @PostMapping("/publish/{id}")
-    public String publish(@PathVariable("id") int id, @RequestParam("description") String description) throws IOException {
-        final Upload upload = uploadRepository.findOne(id);
+    public String publish(
+            @PathVariable("id") int id,
+            @RequestParam("description") String description,
+            Principal principal) throws IOException {
+        final Upload upload = getUpload(id, principal);
         upload.setPublished(true);
         upload.setDescription(descriptionSanitizer.sanitize(description));
         return "redirect:/myfiles";
@@ -122,8 +123,29 @@ public class AppController {
     @RolesAllowed("ROLE_USER")
     @Transactional
     @GetMapping("/delete/{id}")
-    public String delete(@PathVariable("id") int id) throws IOException {
-        uploadRepository.delete(id);
+    public String delete(@PathVariable("id") int id, Principal principal) throws IOException {
+        final Upload upload = getUpload(id, principal);
+        uploadRepository.delete(upload);
         return "redirect:/myfiles";
+    }
+
+    private Upload getUpload(int id, @NotNull Principal principal) {
+        final Upload upload = uploadRepository.findOne(id);
+        final String user = principal.getName();
+        if (upload == null || !upload.getOwner().equals(user)) {
+            // don't leak information whether the id exists or not -> 404
+            throw new EntityNotFoundException("Upload#" + id + " for " + user);
+        }
+        return upload;
+    }
+
+    private Upload getFileForDownload(int id, Principal principal) {
+        final Upload upload = uploadRepository.findOne(id);
+        final String user = principal == null ? null : principal.getName();
+        if(upload != null && (upload.isPublished() || upload.getOwner().equals(user))){
+            return upload;
+        }
+        // don't leak information whether the id exists or not -> 404
+        throw new EntityNotFoundException("Upload#" + id + " for " + user);
     }
 }
