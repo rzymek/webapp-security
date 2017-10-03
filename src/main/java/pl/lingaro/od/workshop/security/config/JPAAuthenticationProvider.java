@@ -34,10 +34,13 @@ public class JPAAuthenticationProvider implements AuthenticationProvider {
         String password = (String) authentication.getCredentials();
         log.info(username);
         String jpaql = "select u from User u where " +
-                "login='" + username + "' AND " +
-                "passwordHash='" + md5sum(password) + "'";
+                "login=:username AND " +
+                "passwordHash=:password";
         log.info(jpaql);
-        final List<User> resultList = em.createQuery(jpaql, User.class).getResultList();
+        final List<User> resultList = em.createQuery(jpaql, User.class)
+                .setParameter("username", username)
+                .setParameter("password", md5sum(password))
+                .getResultList();
         if (resultList.isEmpty()) {
             return null;
         }
