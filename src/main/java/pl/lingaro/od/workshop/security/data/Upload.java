@@ -5,7 +5,7 @@ import javax.validation.constraints.NotNull;
 import java.util.Date;
 
 @Entity
-public class Upload {
+public class Upload implements FileInfo {
     private int id;
     private String filename;
     private byte[] contents;
@@ -14,12 +14,14 @@ public class Upload {
     private String description;
     private boolean published = false;
 
+    @Override
     @Id
     @GeneratedValue
     public int getId() {
         return id;
     }
 
+    @Override
     @NotNull
     public String getFilename() {
         return filename;
@@ -30,6 +32,7 @@ public class Upload {
         return owner;
     }
 
+    @Override
     @NotNull
     public Date getTimestamp() {
         return timestamp;
@@ -46,6 +49,7 @@ public class Upload {
         return description;
     }
 
+    @Override
     @NotNull
     public boolean isPublished() {
         return published;

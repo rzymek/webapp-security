@@ -1,5 +1,6 @@
 package pl.lingaro.od.workshop.security;
 
+import org.h2.util.StringUtils;
 import org.springframework.stereotype.Controller;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.ui.Model;
@@ -10,10 +11,13 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.multipart.MultipartFile;
+import pl.lingaro.od.workshop.security.data.FileInfo;
 import pl.lingaro.od.workshop.security.data.Upload;
+import pl.lingaro.od.workshop.security.data.UploadRepository;
 
 import javax.annotation.security.RolesAllowed;
 import javax.persistence.EntityManager;
+import javax.persistence.criteria.Predicate;
 import javax.servlet.ServletOutputStream;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
@@ -25,9 +29,11 @@ import java.util.logging.Logger;
 public class AppController {
     private static final Logger LOG = Logger.getLogger(AppController.class.getName());
     private final EntityManager em;
+    private final UploadRepository uploadRepository;
 
-    public AppController(EntityManager em) {
+    public AppController(EntityManager em, UploadRepository userRepository) {
         this.em = em;
+        this.uploadRepository = userRepository;
     }
 
     @GetMapping("/")
@@ -60,16 +66,22 @@ public class AppController {
     @RolesAllowed("ROLE_USER")
     @GetMapping("/myfiles")
     public String files(@RequestParam(value = "name", required = false) String name, Model model, Principal principal) {
-        String query = "select " +
-                "   id,filename,timestamp,published, null as contents, null as description, null as owner  " +
-                " from Upload " +
-                " where " +
-                "   owner = '" + principal.getName() + "'";
-        if (name != null) {
-            query += "  AND lower(filename) like '%" + name + "%'";
-        }
-        LOG.info(query);
-        List<Upload> files = em.createNativeQuery(query, Upload.class).getResultList();
+        List<FileInfo> files = uploadRepository.findAll((root, criteriaQuery, criteria) -> {
+            Predicate ownership = criteria.equal(
+                    root.get("owner"), principal.getName()
+            );
+            if (StringUtils.isNullOrEmpty(name)) {
+                return ownership;
+            }
+            return criteria.and(
+                    ownership,
+                    criteria.like(
+                            criteria.lower(root.get("filename")),
+                            '%' + name.toLowerCase() + '%'
+                    )
+            );
+        });
+
         model.addAttribute("files", files);
         model.addAttribute("user", principal.getName());
         return "myfiles";
