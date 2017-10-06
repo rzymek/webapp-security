@@ -6,6 +6,7 @@
     <h1 class="mt-5">My files</h1>
     <p class="lead">
     <form action="/upload" method="post" enctype="multipart/form-data">
+        <input type="hidden" name="${_csrf.parameterName}" value="${_csrf.token}"/>
         Upload: <input type="file" name="file" onchange="this.form.submit()"/>
     </form>
     </p>

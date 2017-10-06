@@ -11,6 +11,7 @@
         <h1 class="mt-5">Publish ${file.filename}</h1>
         <form method="POST">
             <div style="height: 400px">
+                <input type="hidden" name="${_csrf.parameterName}" value="${_csrf.token}"/>
                 <textarea id="editor"
                           style="display:none"
                           name="description">${file.description}</textarea>
