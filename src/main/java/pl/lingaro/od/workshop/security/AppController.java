@@ -1,6 +1,10 @@
 package pl.lingaro.od.workshop.security;
 
 import org.h2.util.StringUtils;
+import org.owasp.html.HtmlPolicyBuilder;
+import org.owasp.html.HtmlSanitizer;
+import org.owasp.html.PolicyFactory;
+import org.owasp.html.Sanitizers;
 import org.springframework.stereotype.Controller;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.ui.Model;
@@ -28,9 +32,15 @@ import java.util.logging.Logger;
 public class AppController {
     private static final Logger LOG = Logger.getLogger(AppController.class.getName());
     private final UploadRepository uploadRepository;
+    private final PolicyFactory descriptionSanitizer;
+    private final PolicyFactory nameSanitizer;
 
     public AppController(UploadRepository userRepository) {
         this.uploadRepository = userRepository;
+        this.descriptionSanitizer = Sanitizers.FORMATTING
+                .and(Sanitizers.LINKS)
+                .and(Sanitizers.BLOCKS);
+        this.nameSanitizer = new HtmlPolicyBuilder().toFactory();
     }
 
     @GetMapping("/")
@@ -85,7 +95,7 @@ public class AppController {
     @Transactional
     public String handleUpload(@RequestParam("file") MultipartFile file, Principal principal) throws Exception {
         Upload upload = new Upload();
-        upload.setFilename(file.getOriginalFilename());
+        upload.setFilename(nameSanitizer.sanitize(file.getOriginalFilename()));
         upload.setContents(StreamUtils.copyToByteArray(file.getInputStream()));
         upload.setOwner(principal.getName());
         uploadRepository.save(upload);
@@ -105,7 +115,7 @@ public class AppController {
     public String publish(@PathVariable("id") int id, @RequestParam("description") String description) throws IOException {
         final Upload upload = uploadRepository.findOne(id);
         upload.setPublished(true);
-        upload.setDescription(description);
+        upload.setDescription(descriptionSanitizer.sanitize(description));
         return "redirect:/myfiles";
     }
 
