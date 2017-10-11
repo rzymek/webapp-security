@@ -16,7 +16,6 @@ import pl.lingaro.od.workshop.security.data.Upload;
 import pl.lingaro.od.workshop.security.data.UploadRepository;
 
 import javax.annotation.security.RolesAllowed;
-import javax.persistence.EntityManager;
 import javax.persistence.criteria.Predicate;
 import javax.servlet.ServletOutputStream;
 import javax.servlet.http.HttpServletResponse;
@@ -28,28 +27,22 @@ import java.util.logging.Logger;
 @Controller
 public class AppController {
     private static final Logger LOG = Logger.getLogger(AppController.class.getName());
-    private final EntityManager em;
     private final UploadRepository uploadRepository;
 
-    public AppController(EntityManager em, UploadRepository userRepository) {
-        this.em = em;
+    public AppController(UploadRepository userRepository) {
         this.uploadRepository = userRepository;
     }
 
     @GetMapping("/")
     public String getPublishedFiles(Model model) {
-        final List<Upload> files = em.createQuery("select file from Upload file " +
-                " where file.published=true " +
-                " order by file.timestamp desc", Upload.class)
-                .setMaxResults(100)
-                .getResultList();
+        final List<Upload> files = uploadRepository.findPublished();
         model.addAttribute("files", files);
         return "index";
     }
 
     @GetMapping("/download/{id}")
     public void download(@PathVariable("id") int id, HttpServletResponse response) throws IOException {
-        Upload upload = em.find(Upload.class, id);
+        Upload upload = uploadRepository.findOne(id);
         if (upload == null) {
             response.sendError(HttpServletResponse.SC_NOT_FOUND);
             return;
@@ -95,14 +88,14 @@ public class AppController {
         upload.setFilename(file.getOriginalFilename());
         upload.setContents(StreamUtils.copyToByteArray(file.getInputStream()));
         upload.setOwner(principal.getName());
-        em.persist(upload);
+        uploadRepository.save(upload);
         return "redirect:/myfiles";
     }
 
     @RolesAllowed("ROLE_USER")
     @GetMapping("/publish/{id}")
     public String publish(@PathVariable("id") int id, Model model) throws IOException {
-        final Upload upload = em.find(Upload.class, id);
+        final Upload upload = uploadRepository.findOne(id);
         model.addAttribute("file", upload);
         return "publish";
     }
@@ -110,7 +103,7 @@ public class AppController {
     @Transactional
     @PostMapping("/publish/{id}")
     public String publish(@PathVariable("id") int id, @RequestParam("description") String description) throws IOException {
-        final Upload upload = em.find(Upload.class, id);
+        final Upload upload = uploadRepository.findOne(id);
         upload.setPublished(true);
         upload.setDescription(description);
         return "redirect:/myfiles";
@@ -120,7 +113,7 @@ public class AppController {
     @Transactional
     @GetMapping("/delete/{id}")
     public String delete(@PathVariable("id") int id) throws IOException {
-        em.remove(em.getReference(Upload.class, id));
+        uploadRepository.delete(id);
         return "redirect:/myfiles";
     }
 }
